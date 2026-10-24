@@ -5,12 +5,13 @@ Repository: **[kafka2137/kasmr-obs](https://github.com/kafka2137/kasmr-obs)**.
 
 A native Windows x64 OBS audio source that plays mechanical keyboard sounds
 as you type in any application. Inspired by [tplai/kbsim](https://github.com/tplai/kbsim),
-using its original recordings with attribution. No browser source or desktop
+using its original recordings with attribution, plus Gateron G Pro Brown
+recordings by kafka2137. No browser source or desktop
 audio loopback is needed.
 
 ## Install and use
 
-For a setup wizard, run **`dist/kasmr-obs-0.1.0-windows-x64-Installer.exe`**.
+For a setup wizard, run **`dist/kasmr-obs-1.1.0-windows-x64-Installer.exe`**.
 Like [Tuna's installer](https://github.com/univrsal/tuna/blob/master/cmake/windows/resources/installer-Windows.iss.in),
 it detects the OBS installation folder, lets you change it, checks the OBS version,
 and adds an uninstaller to Windows Installed Apps. Close OBS first; the installer
@@ -26,7 +27,7 @@ The uninstaller leaves OBS itself, other plugins, and OBS settings alone.
 
 The ZIP remains available for the ProgramData/portable installation method:
 
-1. Extract `dist/kasmr-obs-0.1.0-windows-x64.zip` and close OBS Studio.
+1. Extract `dist/kasmr-obs-1.1.0-windows-x64.zip` and close OBS Studio.
 2. Copy the extracted `kasmr-obs` folder into
    `C:\ProgramData\obs-studio\plugins`. Alternatively, run the extracted
    `install.ps1` in PowerShell (elevation may be needed for that folder).
@@ -46,7 +47,7 @@ documents these directory conventions.
 
 | Setting | Behavior |
 | --- | --- |
-| Switch sound | 13 original sound sets: Creams, Holy Pandas, Alpacas, Tealios, Black/Red Inks, MX Black/Brown/Blue, Box Navy, Buckling Spring, Blue Alps, Topre |
+| Switch sound | 14 sound sets: Creams, Holy Pandas, Alpacas, Tealios, Black/Red Inks, MX Black/Brown/Blue, Gateron G Pro Browns, Box Navy, Buckling Spring, Blue Alps, Topre |
 | Keyboard layout | Full size, TKL, 75%, 65%, or HHKB/60%; keys absent from the chosen layout are silent |
 | Keyboard case sound | Original recording, or simulated plastic, aluminum, and wood/dampened tonal profiles |
 | Volume | Source gain, also independently adjustable in OBS's mixer |
@@ -148,8 +149,8 @@ To publish a release, update `project(... VERSION ...)` in `CMakeLists.txt`,
 commit the changes, then push a matching version tag:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 A successful tag build automatically creates a GitHub Release with the binary
@@ -175,7 +176,7 @@ independent source instances each generate their own sound; use **Add Existing**
 when reusing one source across scenes to avoid duplicates.
 
 Verified locally against installed OBS **32.2.2** on Windows x64 at both 48 kHz
-and 44.1 kHz: all 13 bundled
+and 44.1 kHz: all 14 bundled
 sound sets decode and render; physical key mapping, repeat suppression, gain,
 voice limits, missing packs, module loading, live preset changes, source audio
 delivery, disabled silence, and teardown. The smoke test installs a real Windows

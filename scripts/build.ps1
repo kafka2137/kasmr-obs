@@ -45,7 +45,7 @@ try {
     Copy-Item scripts/install.ps1 dist/install.ps1 -Force
     Copy-Item README.md dist/README.md -Force
     Compress-Archive -Path dist/kasmr-obs,dist/install.ps1,dist/README.md -DestinationPath "dist/kasmr-obs-$version-windows-x64.zip" -Force
-    $sourceFiles = @('CMakeLists.txt', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitignore', '.github', 'src', 'cmake', 'scripts', 'tests', 'third_party', 'data')
+    $sourceFiles = @('CMakeLists.txt', 'README.md', 'CHANGELOG.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitignore', '.github', 'src', 'cmake', 'scripts', 'tests', 'third_party', 'data')
     Compress-Archive -Path $sourceFiles -DestinationPath "dist/kasmr-obs-$version-source.zip" -Force
     Write-Output "Built and verified: $root/dist/kasmr-obs-$version-windows-x64.zip"
 } finally { Pop-Location }

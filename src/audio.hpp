@@ -7,11 +7,12 @@
 
 namespace kasmr {
 struct SwitchPreset { const char *id; const char *name; };
-inline constexpr std::array<SwitchPreset, 13> switches{{
+inline constexpr std::array<SwitchPreset, 14> switches{{
     {"cream", "NovelKeys Creams"}, {"holypanda", "Holy Pandas"},
     {"alpaca", "Alpacas"}, {"turquoise", "Turquoise Tealios"},
     {"blackink", "Gateron Black Inks"}, {"redink", "Gateron Red Inks"},
     {"mxblack", "Cherry MX Blacks"}, {"mxbrown", "Cherry MX Browns"},
+    {"gprobrown", "Gateron G Pro Browns"},
     {"mxblue", "Cherry MX Blues"}, {"boxnavy", "Kailh Box Navies"},
     {"buckling", "Buckling Spring"}, {"bluealps", "SKCM Blue Alps"}, {"topre", "Topre"}
 }};

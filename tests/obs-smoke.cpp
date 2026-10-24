@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     obs_properties_destroy(props);
     const auto initial = audible.load();
     auto *settings = obs_source_get_settings(source);
-    obs_data_set_string(settings, "switch", "mxblue");
+    obs_data_set_string(settings, "switch", "gprobrown");
     obs_data_set_int(settings, "case", 3);
     obs_data_set_int(settings, "layout", 4);
     obs_source_update(source, settings);

@@ -2,12 +2,17 @@
 
 ## kbsim recordings
 
-The sound recordings in `data/sounds` are redistributed from
+The sound recordings in `data/sounds`, except the `gprobrown` folder, are redistributed from
 https://github.com/tplai/kbsim at commit
 `ba103f3b0afa9dab80447aa2e7e2ed80b6bd80e4`.
 Copyright (c) Thomas Lai. MIT license; full text is in
 `data/sounds/LICENSE.kbsim`. These are the original repository recordings,
 not independent measurements of every possible switch/keyboard combination.
+
+## Gateron G Pro Brown recordings
+
+The original recordings in `data/sounds/gprobrown` were recorded and contributed
+by kafka2137 for this project. They are not part of the kbsim recording collection.
 
 ## dr_libs
 

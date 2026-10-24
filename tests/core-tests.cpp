@@ -1,5 +1,6 @@
 #include "audio.hpp"
 #include "keyboard.hpp"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -24,6 +25,16 @@ int main(int argc, char **argv)
         require(!keys.accept(30, false), "OS auto-repeat suppressed");
         require(keys.accept(30, true), "Paired up accepted");
         require(argc == 3, "Sound and fixture directories required");
+        const auto gpro = std::find_if(kasmr::switches.begin(), kasmr::switches.end(), [](const auto &preset) {
+            return std::string(preset.id) == "gprobrown";
+        });
+        require(gpro != kasmr::switches.end(), "G Pro Browns must be available in the switch selector");
+        auto gpro_bank = kasmr::load_bank(std::filesystem::path(argv[1]) / "gprobrown");
+        for (const auto &sample : gpro_bank->samples) {
+            require(std::any_of(sample.begin(), sample.end(), [](float value) {
+                return std::isfinite(value) && std::abs(value) > 0.00001f;
+            }), "Every G Pro Brown press and release recording must contain audible samples");
+        }
         auto custom = kasmr::load_bank(std::filesystem::path(argv[2]));
         for (const auto &sample : custom->samples) {
             require(sample.size() == 960, "22.05 kHz WAV resamples to 48 kHz");
@@ -63,7 +74,7 @@ int main(int argc, char **argv)
         try { kasmr::load_bank(std::filesystem::path(argv[1]) / "missing"); }
         catch (const std::exception &) { rejected = true; }
         require(rejected, "Missing packs fail explicitly");
-        std::cout << "All core checks passed; all 13 sound banks decoded and rendered.\n";
+        std::cout << "All core checks passed; all " << kasmr::switches.size() << " sound banks decoded and rendered.\n";
         return 0;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';
