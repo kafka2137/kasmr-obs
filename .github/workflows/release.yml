@@ -1,0 +1,107 @@
+name: Windows build and release
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build and test Windows x64
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare OBS and Inno Setup
+        run: ./scripts/setup-ci.ps1
+
+      - name: Build, test, and package
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $options = @{
+            Bootstrap = $true
+            Installer = $true
+            ObsRuntime = "$env:GITHUB_WORKSPACE/reference/ci/obs/bin/64bit"
+            IsccPath = "$env:GITHUB_WORKSPACE/reference/ci/inno/ISCC.exe"
+          }
+          if ($env:REF_TYPE -eq 'tag') { $options.ReleaseTag = $env:REF_NAME }
+          ./scripts/build.ps1 @options
+
+      - name: Calculate release checksums
+        run: |
+          $version = (Get-Content build/project-version.txt -Raw).Trim()
+          $files = @(
+            "dist/kasmr-obs-$version-windows-x64.zip"
+            "dist/kasmr-obs-$version-source.zip"
+            "dist/kasmr-obs-$version-windows-x64-Installer.exe"
+          )
+          $checksums = foreach ($file in $files) {
+            $hash = Get-FileHash -LiteralPath $file -Algorithm SHA256
+            '{0}  {1}' -f $hash.Hash.ToLowerInvariant(), (Split-Path $file -Leaf)
+          }
+          $checksums | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+
+      - name: Upload release packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kasmr-obs-windows-x64
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            dist/*.zip
+            dist/*-Installer.exe
+            dist/SHA256SUMS.txt
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-test-logs
+          if-no-files-found: ignore
+          path: |
+            build/Testing/Temporary/*.log
+            build/installer-tests/**/setup.log
+
+  release:
+    name: Publish tagged release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kasmr-obs-windows-x64
+          path: release
+
+      - name: Create release or update its assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          APP_NAME: "Kafka's Keyboard ASMR for OBS"
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release/* --verify-tag --generate-notes --title "$APP_NAME $RELEASE_TAG"
+          fi

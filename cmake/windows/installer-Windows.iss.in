@@ -1,0 +1,159 @@
+; OBS discovery and packaging adapted from univrsal/tuna (GPL-2.0).
+; See THIRD_PARTY_NOTICES.md.
+#define AppVersion "@PROJECT_VERSION@"
+
+[Setup]
+AppId={{E3AE74B5-98B2-4FC5-82FB-4823F925BE93}
+AppName=Kafka's Keyboard ASMR for OBS
+AppVersion={#AppVersion}
+AppPublisher=kafka2137
+AppPublisherURL=https://github.com/kafka2137/kasmr-obs
+AppSupportURL=https://github.com/kafka2137/kasmr-obs/issues
+AppUpdatesURL=https://github.com/kafka2137/kasmr-obs/releases
+VersionInfoCompany=kafka2137
+VersionInfoProductName=Kafka's Keyboard ASMR for OBS
+DefaultDirName={code:GetObsDirectory}
+AppendDefaultDirName=no
+UsePreviousAppDir=no
+DisableProgramGroupPage=yes
+DisableDirPage=no
+DirExistsWarning=no
+OutputDir=@INSTALLER_OUTPUT_DIR@
+OutputBaseFilename=kasmr-obs-{#AppVersion}-windows-x64-Installer
+Compression=lzma2
+SolidCompression=yes
+WizardStyle=modern
+WizardResizable=yes
+ArchitecturesAllowed=x64compatible and not arm64
+ArchitecturesInstallIn64BitMode=x64compatible
+MinVersion=10.0
+CloseApplications=no
+RestartApplications=no
+UninstallDisplayName=Kafka's Keyboard ASMR for OBS
+UninstallFilesDir={app}\data\obs-plugins\kasmr-obs\installer
+#ifdef SandboxBuild
+PrivilegesRequired=lowest
+CreateUninstallRegKey=no
+#else
+PrivilegesRequired=admin
+#endif
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Files]
+Source: "@INSTALLER_STAGE_DIR@\bin\64bit\kasmr-obs.dll"; DestDir: "{app}\obs-plugins\64bit"; Flags: ignoreversion
+Source: "@INSTALLER_STAGE_DIR@\data\*"; DestDir: "{app}\data\obs-plugins\kasmr-obs"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@INSTALLER_SOURCE_DIR@\README.md"; DestDir: "{app}\data\obs-plugins\kasmr-obs"; Flags: ignoreversion
+Source: "@INSTALLER_SOURCE_DIR@\LICENSE"; Flags: dontcopy
+
+#ifndef SandboxBuild
+[InstallDelete]
+; Disable the old ZIP installation to avoid two loaded copies; preserve its data.
+Type: files; Name: "{commonappdata}\obs-studio\plugins\kasmr-obs\bin\64bit\kasmr-obs.dll"
+#endif
+
+[Code]
+function GetObsDirectory(Param: string): string;
+var
+  Directory: string;
+begin
+  Result := ExpandConstant('{autopf}\obs-studio');
+  if RegQueryStringValue(HKLM32, 'SOFTWARE\OBS Studio', '', Directory) then
+    Result := Directory;
+  if RegQueryStringValue(HKLM64, 'SOFTWARE\OBS Studio', '', Directory) then
+    Result := Directory;
+end;
+
+function ValidateObsDirectory(): string;
+var
+  ObsPath: string;
+  VersionMS, VersionLS: Cardinal;
+begin
+  Result := '';
+  ObsPath := ExpandConstant('{app}\bin\64bit\obs64.exe');
+  if not FileExists(ObsPath) then
+    Result := 'Please select your OBS Studio folder. It must contain bin\64bit\obs64.exe.'
+  else if not GetVersionNumbers(ObsPath, VersionMS, VersionLS) then
+    Result := 'Cannot read the OBS Studio version in the selected folder.'
+  else if (VersionMS shr 16) < 32 then
+    Result := 'Kafka''s Keyboard ASMR for OBS requires OBS Studio 32 or newer (64-bit).';
+end;
+
+function EnumProcesses(var FirstProcessId: LongWord; BufferSize: LongWord; var BytesReturned: LongWord): Boolean;
+  external 'EnumProcesses@psapi.dll stdcall';
+function OpenProcess(Access: LongWord; Inherit: Boolean; ProcessId: LongWord): THandle;
+  external 'OpenProcess@kernel32.dll stdcall';
+function QueryFullProcessImageName(Process: THandle; Flags: LongWord; FileName: string; var Size: LongWord): Boolean;
+  external 'QueryFullProcessImageNameW@kernel32.dll stdcall';
+function CloseHandle(Handle: THandle): Boolean;
+  external 'CloseHandle@kernel32.dll stdcall';
+
+function CheckObsClosed(): string;
+var
+  ProcessIds: array[0..4095] of LongWord;
+  BytesReturned, Index, NameLength: LongWord;
+  Process: THandle;
+  FileName: string;
+begin
+  Result := '';
+  if not EnumProcesses(ProcessIds[0], SizeOf(ProcessIds), BytesReturned) then begin
+    Result := 'Could not check running applications. Please close OBS Studio and try again.';
+    Exit;
+  end;
+  if BytesReturned = 0 then Exit;
+  for Index := 0 to (BytesReturned div 4) - 1 do begin
+    Process := OpenProcess($1000, False, ProcessIds[Index]);
+    if Process <> 0 then begin
+      NameLength := 32768;
+      SetLength(FileName, NameLength);
+      if QueryFullProcessImageName(Process, 0, FileName, NameLength) then begin
+        SetLength(FileName, NameLength);
+        if CompareText(ExtractFileName(FileName), 'obs64.exe') = 0 then
+          Result := 'Close OBS Studio before installing or removing Kafka''s Keyboard ASMR for OBS, then try again.';
+      end;
+      CloseHandle(Process);
+      if Result <> '' then Exit;
+    end;
+  end;
+end;
+
+procedure InitializeWizard();
+var
+  LicenseText: AnsiString;
+begin
+  ExtractTemporaryFile('LICENSE');
+  LoadStringFromFile(ExpandConstant('{tmp}\LICENSE'), LicenseText);
+  CreateOutputMsgMemoPage(wpWelcome, 'License Information',
+    'Please review your rights under the GNU General Public License.',
+    'Click Next to continue installing Kafka''s Keyboard ASMR for OBS.', String(LicenseText));
+  WizardForm.SelectDirLabel.Caption := 'Select the OBS Studio installation folder (the folder containing bin\64bit\obs64.exe).';
+end;
+
+function NextButtonClick(PageId: Integer): Boolean;
+var
+  ErrorText: string;
+begin
+  Result := True;
+  if PageId <> wpSelectDir then Exit;
+  ErrorText := ValidateObsDirectory();
+  if ErrorText <> '' then begin
+    SuppressibleMsgBox(ErrorText, mbError, MB_OK, IDOK);
+    Result := False;
+  end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): string;
+begin
+  Result := ValidateObsDirectory();
+  if Result = '' then Result := CheckObsClosed();
+end;
+
+function InitializeUninstall(): Boolean;
+var
+  ErrorText: string;
+begin
+  ErrorText := CheckObsClosed();
+  Result := ErrorText = '';
+  if not Result then SuppressibleMsgBox(ErrorText, mbError, MB_OK, IDOK);
+end;

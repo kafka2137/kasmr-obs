@@ -1,0 +1,6 @@
+/reference/
+/build/
+/build-core/
+/dist/
+/.vs/
+*.user
